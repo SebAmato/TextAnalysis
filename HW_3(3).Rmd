@@ -1,0 +1,292 @@
+---
+title: ""
+date: "`r Sys.Date()`"
+output:
+  rmdformats::material:
+    highlight: kate
+---
+
+
+```{r knitr_init, echo=FALSE, cache=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+```{r}
+library(dplyr)
+library(rvest)
+library(stringr)
+library(tidytext)
+library(sentimentr)
+library(stm)
+library(DT)
+
+```
+# Introduction: 
+
+> I have heard about abortion lately. I know it is a serious issue and that at a national and international level, people cannot agree on the issue. Since I could not have a opinion myself because I struggle to see what are all the implications, I decided to document myself about it and found papers. 
+I am a very slow reader in English, I know that papers isually take time to get to the point and I's rather code than read. I will therefore run sentiment analysis and topic models on two papers to be able to select only a couple of paragraphs and still get my answers. 
+
+
+# Collecting Data: 
+
+
+```{r}
+for_abortion = read_html("https://gradesfixer.com/free-essay-examples/analysis-of-anti-abortion-vs-abortions-rights-views/") %>% 
+  html_node(".single-essay-item") %>% 
+  html_text()
+```
+
+## Cleaning and separating each paragraph 
+
+```{r}
+
+for_abortion_paragraph = str_split(for_abortion, "\n", n = Inf)
+
+intro = for_abortion_paragraph[[1]][3]
+
+par1 = for_abortion_paragraph[[1]][4]
+
+par2 = for_abortion_paragraph[[1]][5]
+
+par3 = for_abortion_paragraph[[1]][6]
+
+par4 = for_abortion_paragraph[[1]][7]
+
+conclusion = for_abortion_paragraph[[1]][8]
+
+```
+
+# Sentiment Analysis on the first paper
+
+## Intro
+
+```{r}
+introSentiment = sentiment(get_sentences(intro), 
+          polarity_dt = lexicon::hash_sentiment_sentiword) %>% 
+  summarise(avgSentiment = mean(sentiment), 
+            maxSentiment = max(sentiment),
+            minSentiment = min(sentiment),
+            rangeSentiment = max(sentiment) - min(sentiment))
+
+```
+
+
+## Paragraphe 1
+
+```{r}
+par1Sentiment = sentiment(get_sentences(par1), 
+          polarity_dt = lexicon::hash_sentiment_sentiword) %>% 
+  summarise(avgSentiment = mean(sentiment), 
+            maxSentiment = max(sentiment),
+            minSentiment = min(sentiment),
+            rangeSentiment = max(sentiment) - min(sentiment))
+
+```
+
+
+## Paragraphe 2: 
+
+```{r}
+par2Sentiment = sentiment(get_sentences(par2), 
+          polarity_dt = lexicon::hash_sentiment_sentiword) %>% 
+  summarise(avgSentiment = mean(sentiment), 
+            maxSentiment = max(sentiment),
+            minSentiment = min(sentiment),
+            rangeSentiment = max(sentiment) - min(sentiment))
+
+```
+
+## Paragraphe 3: 
+
+```{r}
+par3Sentiment = sentiment(get_sentences(par3), 
+          polarity_dt = lexicon::hash_sentiment_sentiword) %>% 
+  summarise(avgSentiment = mean(sentiment), 
+            maxSentiment = max(sentiment),
+            minSentiment = min(sentiment),
+            rangeSentiment = max(sentiment) - min(sentiment))
+
+```
+
+## Paragraphe 4: 
+
+```{r}
+par4Sentiment = sentiment(get_sentences(par4), 
+          polarity_dt = lexicon::hash_sentiment_sentiword) %>% 
+  summarise(avgSentiment = mean(sentiment), 
+            maxSentiment = max(sentiment),
+            minSentiment = min(sentiment),
+            rangeSentiment = max(sentiment) - min(sentiment))
+
+```
+
+
+## Conclusion: 
+
+```{r}
+conclusionSentiment = sentiment(get_sentences(conclusion), 
+          polarity_dt = lexicon::hash_sentiment_sentiword) %>% 
+  summarise(avgSentiment = mean(sentiment), 
+            maxSentiment = max(sentiment),
+            minSentiment = min(sentiment),
+            rangeSentiment = max(sentiment) - min(sentiment))
+
+```
+
+## General analysis: 
+
+```{r}
+sentimentAnalysis = rbind(introSentiment, par1Sentiment, par2Sentiment, par3Sentiment, par4Sentiment, conclusionSentiment)
+
+totals = c(mean(sentimentAnalysis$avgSentiment), mean(sentimentAnalysis$maxSentiment), mean(sentimentAnalysis$minSentiment), mean(sentimentAnalysis$rangeSentiment))
+
+sentimentAnalysis = rbind(sentimentAnalysis, totals)
+
+rowNames = c("Introduction", "Paragraphe_1", "Paragraphe_2", "Paragraphe_3", "Paragraphe_4", "Conclusion", "Totals")
+
+row.names(sentimentAnalysis) = rowNames
+
+sentimentAnalysis = sentimentAnalysis %>% 
+  mutate(avgSentiment = as.numeric(avgSentiment),
+         maxSentiment = as.numeric(maxSentiment),
+         minSentiment = as.numeric(minSentiment),
+         rangeSentiment = as.numeric(rangeSentiment))
+```
+
+> Overall, the sentiment analysis seems to be close to neutral when looking at the average sentiment of the whole paper. However, when looking at the paragraphs independently, it seems that paragraph has the largest negative value and the maximum sentiment value is zero. Paragraphe 3 would probably be interesting to read because it is likely that some type of opinion will be expressed. The range is also fairly high at `r round(sentimentAnalysis$rangeSentiment[4], 2)` only withing negative values. 
+The introduction paragraphe has the largest positive value. Since it is the introduction, it is likely to give an overview of the paper and set the tone of it. The range at `r round(sentimentAnalysis$rangeSentiment[1], 2)` is expected for an introduction. 
+Paragraphe 4, has a neutral average. However, the range between posiive and negative sentiment at `r round(sentimentAnalysis$rangeSentiment[5], 2)` is the second highest. Paragraphe 4 is also likely to express opinion or at least arguments that will be interesting to read. As we could expect, the conclusion is on average fairly neutral because balanced between the positive and negative sentiment. The range is by far the highes with `r round(sentimentAnalysis$rangeSentiment[6], 2)`. The sentiment analysis allows me to skip pragraph 1 and 2, without missing out to much of the arguements and of the final point of the paper. 
+
+
+# Sentiment Analysis Second Paper: 
+
+```{r}
+paper2 = read_html("https://gradesfixer.com/free-essay-examples/a-look-at-views-concerning-the-right-to-abortion/") %>% 
+  html_node(".single-essay-wrapper") %>% 
+  html_text()
+```
+
+
+```{r}
+comp_paragraph = str_split(paper2, "\n", n = Inf)
+
+comp_paragraph = as.data.frame(comp_paragraph)
+
+colnames(comp_paragraph) = "Paragraphs"
+
+comp_paragraph = comp_paragraph %>% 
+  mutate(Paragraphs = as.character(Paragraphs))
+
+comp_paragraph = comp_paragraph %>% 
+  filter(str_length(Paragraphs) > 70)
+
+
+```
+
+
+```{r}
+
+paper2Sentiment = sentiment(get_sentences(comp_paragraph), 
+          polarity_dt = lexicon::hash_sentiment_sentiword) %>% 
+  group_by(element_id) %>% 
+  summarise(avgSentiment = mean(sentiment), 
+            maxSentiment = max(sentiment),
+            minSentiment = min(sentiment),
+            rangeSentiment = max(sentiment) - min(sentiment))
+
+total2 = c("Totals", mean(paper2Sentiment$avgSentiment), mean(paper2Sentiment$maxSentiment), mean(paper2Sentiment$minSentiment), mean(paper2Sentiment$rangeSentiment))
+
+paper2Sentiment = rbind(paper2Sentiment, total2)
+
+paper2Sentiment - paper2Sentiment %>% 
+  mutate(avgSentiment = as.numeric(avgSentiment),
+         maxSentiment = as.numeric(maxSentiment),
+         minSentiment = as.numeric(minSentiment),
+         rangeSentiment = as.numeric(rangeSentiment))
+
+paper2Sentiment %>% 
+  arrange(desc(maxSentiment))
+
+DT::datatable(paper2Sentiment)
+```
+> In terms of average sentiment, the paper is pretty neutral. The largrest negative value is only `r round(paper2Sentiment$avgSentiment[12], 2)` and the largest positive value is `r round(paper2Sentiment$avgSentiment[14], 2)`. Concerning the maximum sentiment of each paragraph, values do not go higher than `r round(max(paper2Sentiment$maxSentiment), 2)`. Paragraphs 4 and 14 seem to be the paragraph with the highest positvie sentiment. It is also interesting to look at paragraph 10 because the maximum sentiment for the paragraph is negative. Paragraph 10 would therefore be interesting to read because there are probably strong arguments given. We could also guess that the paragraph would advocate against abortion. Min sentiment for evry paragraph is also more neutral than for the first paper. The paragraphs 6, 7 and 10 largest neagtive values for minimum sentiment (> 0.3). I would therefore choose to read thesed three paragraphs. The ranges show that paragraphs 6, 4, 1 (the introduction) and 7 have the higest difference of values between positive and negative sentiment. 
+For this paper, I would therefore choose to read the paragraphs 4, 6, 7, 10 and 14 and as well as both the introduction and the consclusion. 
+
+> - **Let us proceed to topic modeling to see if we are able to predcit the final opinion of the author**
+
+# Topic model: 
+
+## Paper one: 
+
+```{r}
+for_abortion_paragraph = as.data.frame(for_abortion_paragraph[[1]])
+
+for_abortion_paragraph = for_abortion_paragraph[-c(1, 2, 9), ]
+
+for_abortion_paragraph = as.data.frame(for_abortion_paragraph)
+
+colnames(for_abortion_paragraph) = "Paragraphs"
+```
+
+
+```{r}
+
+paper1Text = textProcessor(documents = for_abortion_paragraph$Paragraphs, 
+                          metadata = for_abortion_paragraph, 
+                          stem = FALSE)
+
+paperPrep = prepDocuments(documents = paper1Text$documents, 
+                               vocab = paper1Text$vocab,
+                               meta = paper1Text$meta)
+
+
+
+topics1 = stm(documents = paperPrep$documents, 
+             vocab = paperPrep$vocab, seed = 1001,
+             K = 3, verbose = FALSE)
+
+plot(topics1)
+
+labelTopics(topics1)
+
+```
+
+> For the first paper, the topic1 Frex words positive and choice shows that part of the paper probably in favour of abortion. 
+The word "kill" in topic three shows that the author also mentions the pro-life side of the issue. Topic 2 does not give much indication about what side the paper is on. I guess I will have to read it. 
+
+## Paper 2: 
+
+```{r}
+paper2Text = textProcessor(documents = comp_paragraph$Paragraphs, 
+                          metadata = comp_paragraph, 
+                          stem = FALSE)
+
+paper2Prep = prepDocuments(documents = paper2Text$documents, 
+                               vocab = paper2Text$vocab,
+                               meta = paper2Text$meta)
+
+
+
+topics2 = stm(documents = paper2Prep$documents, 
+             vocab = paper2Prep$vocab, seed = 1001,
+             K = 5, verbose = FALSE)
+
+plot(topics2)
+
+labelTopics(topics2)
+```
+
+
+> Because the second paper is longer, I decided to look at 5 topics. Topic 1 talks about equality, which probably advocates for the pro-choice side. The words health and family in topic 3 indicates that the authors mentions the health implications of aborting and of the family values that usually advocates against the right to abortion. Topic 4 and 5 seems to be slightly on the pro-choice side with the words "choice", "able", "support" and "rights". 
